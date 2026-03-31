@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nordlynx
+  namespace: nordlynx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nordlynx
+  template:
+    metadata:
+      labels:
+        app: nordlynx
+    spec:
+      securityContext:
+        sysctls:
+          - name: net.ipv6.conf.all.disable_ipv6
+            value: "1"
+      # Additional sysctls (uncomment if needed, requires kind-config.yaml allowlist + cluster reset)
+      # securityContext:
+      #   sysctls:
+      #     - name: net.ipv4.conf.all.src_valid_mark
+      #       value: "1"
+      #     - name: net.ipv4.conf.all.rp_filter
+      #       value: "2"
+      containers:
+        - name: nordlynx
+          image: localhost:5001/nordlynx:dev
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8088
+              name: qbittorrent
+            - containerPort: 6881
+              name: torrent
+          envFrom:
+            - secretRef:
+                name: nordlynx-env
+          env:
+            - name: LOG_LEVEL
+              value: DEBUG
+            - name: DNS
+              value: "8.8.8.8,8.8.4.4"
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+                - NET_RAW
+                - SYS_MODULE
+          volumeMounts:
+            - name: lib-modules
+              mountPath: /lib/modules
+              readOnly: true
+      volumes:
+        - name: lib-modules
+          hostPath:
+            path: /lib/modules
