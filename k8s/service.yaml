@@ -13,3 +13,6 @@ spec:
     - name: torrent
       port: 6881
       targetPort: 6881
+    - name: socks5
+      port: 1080
+      targetPort: 1080

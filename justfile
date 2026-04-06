@@ -1,6 +1,10 @@
-# nordlynx app — local dev recipes
+# nordlynx — local dev recipes
 # Usage: just <recipe>
 # Run from ~/development/nordlynx/
+#
+# NOTE: nordlynx, microsocks, and qbittorrent all run in the same pod.
+# 'just deploy' here rebuilds the nordlynx image and applies all manifests.
+# To rebuild only the qbittorrent image, use 'just deploy' from ~/development/qbittorrent/.
 
 cluster       := env("CLUSTER", "kind")
 registry_port := env("REGISTRY_PORT", "5001")
@@ -10,7 +14,7 @@ namespace     := "nordlynx"
 default:
     @just --list
 
-# Build, push to local registry, and apply manifests
+# Build nordlynx image, push to local registry, and apply all manifests
 deploy:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -24,7 +28,6 @@ deploy:
     echo "=> Applying manifests..."
     kubectl apply -f k8s/ --context "kind-{{cluster}}"
     echo "✓ nordlynx deployed."
-    echo "  Check status: kubectl get pods -n {{namespace}}"
 
 # Create/update the nordlynx Secret from .env
 secret:
@@ -41,13 +44,21 @@ secret:
         --dry-run=client -o yaml | kubectl apply -f -
     echo "✓ nordlynx secret created/updated."
 
-# Stream logs from the nordlynx namespace
+# Restart the nordlynx pod (restarts all sidecars: nordlynx, microsocks, qbittorrent)
+restart:
+    kubectl rollout restart deployment/nordlynx \
+        -n "{{namespace}}" --context "kind-{{cluster}}"
+    kubectl rollout status deployment/nordlynx \
+        -n "{{namespace}}" --context "kind-{{cluster}}"
+    echo "✓ nordlynx pod restarted."
+
+# Stream logs from all containers in the nordlynx pod
 logs:
     kubectl logs -n "{{namespace}}" --context "kind-{{cluster}}" \
         --all-containers --prefix --follow \
         -l app=nordlynx
 
-# Delete all nordlynx resources from the cluster
+# Delete all nordlynx resources from the cluster (including qbittorrent PVCs)
 teardown:
     kubectl delete -f k8s/ --context "kind-{{cluster}}" --ignore-not-found
     echo "✓ nordlynx removed from cluster."

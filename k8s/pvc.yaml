@@ -1,0 +1,66 @@
+# qbittorrent PVs and PVCs live here (nordlynx namespace) because qbittorrent
+# runs as a sidecar in the nordlynx pod. PVCs must be in the same namespace as the pod.
+# PV names use the -nln suffix to avoid collision with the old qbittorrent-namespace PVs.
+
+# Config — backed by ~/development/qbittorrent/configs/ on the host.
+# Requires the extraMount in ~/development/kubernetes/kind-config.yaml.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: qbittorrent-config-nln
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  hostPath:
+    path: /home/tostinat/development/qbittorrent/configs
+  claimRef:
+    name: qbittorrent-config
+    namespace: nordlynx
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qbittorrent-config
+  namespace: nordlynx
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: ""
+  volumeName: qbittorrent-config-nln
+---
+# Data — shared Seagate drive, same hostPath used by sonarr-data and radarr-data.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: qbittorrent-data-nln
+spec:
+  capacity:
+    storage: 2Ti
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  hostPath:
+    path: /mnt/seagate_2tb/media_server/data
+  claimRef:
+    name: qbittorrent-data
+    namespace: nordlynx
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qbittorrent-data
+  namespace: nordlynx
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Ti
+  storageClassName: ""
+  volumeName: qbittorrent-data-nln
